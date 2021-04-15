@@ -1,44 +1,3 @@
-// var createError = require('http-errors');
-// var express = require('express');
-// var path = require('path');
-// var cookieParser = require('cookie-parser');
-// var logger = require('morgan');
-// var cors = require('cors');
-// var indexRouter = require('./routes/index');
-// var usersRouter = require('./routes/users');
-// var app = express();
-//
-// // view engine setup
-// app.set('views', path.join(__dirname, 'views'));
-// app.set('view engine', 'pug');
-//
-// app.use(logger('dev'));
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: false }));
-// app.use(cors());
-// app.use(cookieParser());
-// app.use(express.static(path.join(__dirname, 'public')));
-//
-// app.use('/', indexRouter);
-// app.use('/users', usersRouter);
-//
-// // catch 404 and forward to error handler
-// app.use(function(req, res, next) {
-//   next(createError(404));
-// });
-//
-// // error handler
-// app.use(function(err, req, res, next) {
-//   // set locals, only providing error in development
-//   res.locals.message = err.message;
-//   res.locals.error = req.app.get('env') === 'development' ? err : {};
-//
-//   // render the error page
-//   res.status(err.status || 500);
-//   res.render('error');
-// });
-//
-// module.exports = app;
 const express = require("express");
 const http = require("http");
 const socketIo = require("socket.io");
@@ -64,7 +23,7 @@ const oracledb = require('oracledb');
 oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT;
 try {
   oracledb.initOracleClient({libDir:
-        'D:\\Zach\\Desktop\\CIS4301Project\\instantclient_19_10'});
+        'C:\\Users\\taylo\\OneDrive\\Documents\\Path\\instantclient_19_10'});
 } catch(err) {
   console.error(err);
   console.error(1);
@@ -90,9 +49,10 @@ io.on("connection", (socket) => {
 
         const result = await connection.execute(
             `SELECT *
-            FROM "PROJECT_AIRPORT"
+            FROM "ADEEB.RASHID"."PROJECT_FLIGHT"
             FETCH FIRST 10 ROWS ONLY`
         );
+        console.log(result.rows);
         return result.rows;
       } catch(err) {
         console.error(err);
@@ -124,10 +84,30 @@ io.on("connection", (socket) => {
         });
 
         const result = await connection.execute(
-            `SELECT *
-            FROM "PROJECT_AIRPORT"
-            FETCH FIRST 10 ROWS ONLY`
+            `SELECT EXTRACT(MONTH FROM End_Time), COUNT(*) 
+            FROM "adeeb.rashid"."Project_Flight" 
+            WHERE Departure  IN 
+            (SELECT ICAOAP FROM "adeeb.rashid"."Project_Airport" WHERE Country IN 
+            (
+            SELECT DISTINCT Country_Name as Hotspots FROM(
+            SELECT Country_Name, month, sums, row_number() OVER(PARTITION BY MONTH ORDER BY sums DESC) AS rn
+            FROM(
+            SELECT Country_Name, EXTRACT(MONTH FROM Day) AS month, SUM(New_Cases) AS sums
+            FROM "adeeb.rashid"."Project_Statistic"
+            WHERE Country_Name NOT IN ('World', 'Europe', 'North America', 'Asia', 'Africa', 'North America', 'European Union', 'South America') AND New_Cases IS NOT NULL
+            GROUP BY Country_Name, EXTRACT(MONTH FROM Day) 
+            ORDER BY month DESC, SUM(New_Cases) DESC
+            )
+            )
+            WHERE rn <=5
+            )
+            )
+            AND Destination IN
+            (SELECT ICAOAP FROM "adeeb.rashid"."Project_Airport" WHERE Country = 'India')
+            GROUP  BY  EXTRACT(MONTH FROM End_Time)
+            ORDER BY EXTRACT(MONTH FROM End_Time)`
         );
+        console.log(result.rows);
         return result.rows;
       } catch(err) {
         console.error(err);
