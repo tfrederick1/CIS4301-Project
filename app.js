@@ -84,28 +84,28 @@ io.on("connection", (socket) => {
         });
 
         const result = await connection.execute(
-            `SELECT EXTRACT(MONTH FROM End_Time), COUNT(*) 
-            FROM "adeeb.rashid"."Project_Flight" 
-            WHERE Departure  IN 
-            (SELECT ICAOAP FROM "adeeb.rashid"."Project_Airport" WHERE Country IN 
+            `SELECT EXTRACT(MONTH FROM END_TIME) AS month, COUNT(*) AS COUNT
+            FROM PROJECT_FLIGHT
+            WHERE DEPARTURE  IN
+            (SELECT ICAOAP FROM PROJECT_AIRPORT WHERE COUNTRY IN
             (
-            SELECT DISTINCT Country_Name as Hotspots FROM(
-            SELECT Country_Name, month, sums, row_number() OVER(PARTITION BY MONTH ORDER BY sums DESC) AS rn
+            SELECT DISTINCT COUNTRY_NAME AS HOTSPOTS FROM(
+            SELECT COUNTRY_NAME, MONTH, SUMS, ROW_NUMBER() OVER(PARTITION BY MONTH ORDER BY SUMS DESC) AS RN
             FROM(
-            SELECT Country_Name, EXTRACT(MONTH FROM Day) AS month, SUM(New_Cases) AS sums
-            FROM "adeeb.rashid"."Project_Statistic"
-            WHERE Country_Name NOT IN ('World', 'Europe', 'North America', 'Asia', 'Africa', 'North America', 'European Union', 'South America') AND New_Cases IS NOT NULL
-            GROUP BY Country_Name, EXTRACT(MONTH FROM Day) 
-            ORDER BY month DESC, SUM(New_Cases) DESC
+            SELECT COUNTRY_NAME, EXTRACT(MONTH FROM DAY) AS MONTH, SUM(NEW_CASES) AS SUMS
+            FROM PROJECT_STATISTIC
+            WHERE COUNTRY_NAME NOT IN ('WORLD', 'EUROPE', 'NORTH AMERICA', 'ASIA', 'AFRICA', 'NORTH AMERICA', 'EUROPEAN UNION', 'SOUTH AMERICA') AND NEW_CASES IS NOT NULL
+            GROUP BY COUNTRY_NAME, EXTRACT(MONTH FROM DAY)
+            ORDER BY MONTH DESC, SUM(NEW_CASES) DESC
             )
             )
-            WHERE rn <=5
+            WHERE RN <=5
             )
             )
-            AND Destination IN
-            (SELECT ICAOAP FROM "adeeb.rashid"."Project_Airport" WHERE Country = 'India')
-            GROUP  BY  EXTRACT(MONTH FROM End_Time)
-            ORDER BY EXTRACT(MONTH FROM End_Time)`
+            AND DESTINATION IN
+            (SELECT ICAOAP FROM PROJECT_AIRPORT WHERE COUNTRY = '` + arguments[0] + `')
+            GROUP BY  EXTRACT(MONTH FROM END_TIME)
+            ORDER BY EXTRACT(MONTH FROM END_TIME)`
         );
         console.log(result.rows);
         return result.rows;
