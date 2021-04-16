@@ -1,8 +1,43 @@
-import React, { Component, useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import {Line} from 'react-chartjs-2';
+import Chart from 'chart.js';
 import { BrowserRouter, Route, Switch } from 'react-router-dom';
 import socketIOClient from "socket.io-client";
 const ENDPOINT = "http://127.0.0.1:5000";
+
+/*
+var ctx = 'myChart';
+const config = {
+  type: 'line',
+  datasets: {
+    labels: [],
+    data: [{}]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: 'Chart.js Line Chart'
+      }
+    }
+  }
+};
+var graph = new Chart(ctx, config);
+*/
+
+
+const info = {
+  labels: [],
+  datasets: [
+    {
+      
+    }
+  ]
+}
 
 class App extends Component {
   constructor(props) {
@@ -10,8 +45,12 @@ class App extends Component {
     this.state = {
       query: '',
       list: [],
+      socket: socketIOClient(ENDPOINT),
+      labels: [],
+      datasets: [],
+      updated: false,
+      info: {"labels":[], "datasets":[]}
     };
-
     // this.buttonClick = this.buttonClick.bind(this);
     this.addItem1 = this.addItem1.bind(this);
     this.addItem2 = this.addItem2.bind(this);
@@ -39,11 +78,7 @@ class App extends Component {
       });
 
       console.log("Ran");
-      const socket = socketIOClient(ENDPOINT);
-      socket.on('Results',data => {
-        console.log(data);
-      });
-      socket.emit("Query 1",this.state.list);
+      this.state.socket.emit("Query 1",this.state.list);
 
       // Finally, we need to reset the form
       newItem.classList.remove("is-danger");
@@ -73,11 +108,7 @@ class App extends Component {
       });
 
       console.log("Ran");
-      const socket = socketIOClient(ENDPOINT);
-      socket.on('Results',data => {
-        console.log(data);
-      });
-      socket.emit("Query 2", this.state.list);
+      this.state.socket.emit("Query 2", this.state.list);
 
       // Finally, we need to reset the form
       newItem.classList.remove("is-danger");
@@ -111,11 +142,10 @@ class App extends Component {
       });
 
       console.log("Ran");
-      const socket = socketIOClient(ENDPOINT);
-      socket.on('Results',data => {
+      this.socket.on('Results',data => {
         console.log(data);
       });
-      socket.emit("Query 1", this.state.list);
+      this.socket.emit("Query 3",this.state.list);
 
       // Finally, we need to reset the form
       newItem1.classList.remove("is-danger");
@@ -150,11 +180,10 @@ class App extends Component {
       });
 
       console.log("Ran");
-      const socket = socketIOClient(ENDPOINT);
-      socket.on('Results',data => {
+      this.socket.on('Results',data => {
         console.log(data);
       });
-      socket.emit("Query 4", this.state.list);
+      this.socket.emit("Query 4",this.state.list);
 
       // Finally, we need to reset the form
       newItem.classList.remove("is-danger");
@@ -185,11 +214,10 @@ class App extends Component {
       });
 
       console.log("Ran");
-      const socket = socketIOClient(ENDPOINT);
-      socket.on('Results',data => {
+      this.socket.on('Results',data => {
         console.log(data);
       });
-      socket.emit("Query 5", this.state.list);
+      this.socket.emit("Query 5",this.state.list);
 
       // Finally, we need to reset the form
       newItem.classList.remove("is-danger");
@@ -200,7 +228,74 @@ class App extends Component {
     }
   }
 
+  componentDidMount() {
+    this.state.socket.on('Results',data => {
+      if(!this.state.updated) {
+        var l = data.length;
+        var temp = [];
+
+        for(var i = 0; i < l; i++) {
+          temp.push(data[i]["COUNT"]);
+        }
+        
+        console.log(temp);
+
+        this.setState({
+          labels: ["February", "March", "April", "May", "June","July", "August",
+                  "September", "October", "November"],
+          datasets: [{
+            fill: false,
+            lineTension: 0.5,
+            backgroundColor: 'rgba(75,192,192,1)',
+            borderColor: 'rgba(0,0,0,1)',
+            borderWidth: 2,
+            data: temp
+          }],
+        });
+
+        info["labels"] = this.state.labels;
+        info["datasets"] = this.state.datasets;
+
+        setInterval(() => {}, 10000);
+
+        this.setState({
+          updated: true
+        });
+      }
+    });
+  }
+
   render() {
+    let emptyState = (
+      <div className="empty">
+      </div>
+    );
+
+    let loadedState = (
+      <div className="loaded">
+          <Line
+            data={info}
+            options={{
+              title:{
+                display:true,
+                text:'Flights to Country per Month',
+                fontSize:20
+              },
+              animation: {
+                duration: 0
+              },
+              hover: {
+                animationDuration: 0
+              },
+              responsiveAnimationDuration: 0,
+              legend: {
+                display:false
+              }
+            }}
+          />
+      </div>
+    );
+
     return (
       <div className="App">
         <div class="flex-container-header">
@@ -333,6 +428,8 @@ class App extends Component {
                         </section>
                       </div>
                     </div>
+                    {!this.state.updated && emptyState}
+                    {this.state.updated && loadedState}
                 </div>
               </div>
             </Route>
